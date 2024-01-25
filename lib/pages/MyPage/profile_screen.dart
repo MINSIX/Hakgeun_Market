@@ -1,10 +1,12 @@
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:hakgeun_market/models/goods.dart';
 import 'package:hakgeun_market/pages/AuthPage/login_screen.dart';
 import 'package:hakgeun_market/pages/AuthPage/regist_screen.dart';
-import 'package:hakgeun_market/provider/navigation_provider.dart';
+import 'package:hakgeun_market/pages/Goods/home.dart';
 import 'package:hakgeun_market/provider/user_provider.dart';
+import 'package:hakgeun_market/service/goodsService.dart';
 import 'package:hakgeun_market/service/userService.dart';
 import 'package:provider/provider.dart';
 
@@ -19,49 +21,49 @@ class ProfilePage extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final navProvider = Provider.of<NavigationProvider>(context);
     final user = userProvider.user;
-
+    final GoodsService goodsService = GoodsService();
     if (user != null) {
-      navProvider.updatePage(3);
       return Scaffold(
         body: ListView(
           children: <Widget>[
-            const SizedBox(height: 20),
             ListTile(
               leading: const Icon(Icons.account_circle, size: 50),
               title: Text(user.nickName),
-              subtitle: Text('${user.schoolName} #${user.phoneNum}'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${user.schoolName} #${user.phoneNum}'),
+                ],
+              ),
             ),
-            _buildMannerTemperature(user.mannerTemperature),
             const Divider(),
-            _buildButton(context, Icons.list, '판매목록', Colors.green, () {
+            _buildButton(context, Icons.list, '판매목록', Colors.green, () async {
+              // Filter goods for Sales List
+              List<Goods> salesList =
+                  await goodsService.getFilterSaleGoods(user.nickName);
+
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Container()),
+                MaterialPageRoute(
+                  builder: (context) => Home(
+                    SearchData: salesList,
+                  ),
+                ),
               );
             }),
             _buildButton(context, Icons.shopping_cart, '구매목록', Colors.green,
-                () {
-              // Navigator push to 구매목록 screen
+                () async {
+              List<Goods> buyList =
+                  await goodsService.getFilterBuyGoods(user.nickName);
+
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => Container()),
-              );
-            }),
-            _buildButton(context, Icons.favorite, '관심목록', Colors.green, () {
-              // Navigator push to 관심목록 screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Container()),
-              );
-            }),
-            _buildButton(context, Icons.notifications, '알림목록', Colors.green,
-                () {
-              // Navigator push to 알림목록 screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Container()),
+                MaterialPageRoute(
+                  builder: (context) => Home(
+                    SearchData: buyList,
+                  ),
+                ),
               );
             }),
             const Divider(),
@@ -194,27 +196,6 @@ class ProfilePage extends State<ProfileScreen> {
       leading: Icon(icon, size: 30, color: color),
       title: Text(label),
       onTap: onTap,
-    );
-  }
-
-  Widget _buildMannerTemperature(double temperature) {
-    Color color;
-    if (temperature < 35) {
-      color = Colors.blue;
-    } else if (temperature < 37) {
-      color = Colors.green;
-    } else {
-      color = Colors.red;
-    }
-
-    return ListTile(
-      title: const Text('매너 온도'),
-      subtitle: LinearProgressIndicator(
-        value: temperature / 100,
-        valueColor: AlwaysStoppedAnimation<Color>(color),
-        backgroundColor: Colors.grey[300],
-      ),
-      trailing: Text('${temperature.toStringAsFixed(1)}°C'),
     );
   }
 
